@@ -1,0 +1,24 @@
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+venv/
+ENV/
+build/
+dist/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+
+# Large dataset binaries (>100MB)
+Dataset/
+data/raw/sales_train_validation.csv
+data/raw/sell_prices.csv
+*.zip
+*.tar.gz
