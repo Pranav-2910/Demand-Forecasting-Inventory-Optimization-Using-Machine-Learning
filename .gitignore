@@ -8,16 +8,23 @@ venv/
 ENV/
 build/
 dist/
+*.egg-info/
 
-# Jupyter Notebook checkpoints
+# Testing and Jupyter caches
+.pytest_cache/
 .ipynb_checkpoints/
 
 # Operating system files
 Thumbs.db
 Desktop.ini
+.DS_Store
 
-# Large dataset binaries (>100MB)
+# Temporary scratch and dataset duplicates
+scratch/
 Dataset/
+*.log
+
+# Large dataset raw binaries (> 100 MB) blocked by GitHub
 data/raw/sales_train_validation.csv
 data/raw/sell_prices.csv
 *.zip
