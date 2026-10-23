@@ -5,13 +5,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
-
-from src.inventory import (
-    assess_stockout_risk,
-    calculate_reorder_point,
-    calculate_suggested_replenishment,
-)
-from src.metrics import evaluate_forecasts
+from scipy.stats import norm
 
 # Initializing FastAPI web application instance.
 app = FastAPI(
@@ -22,20 +16,119 @@ app = FastAPI(
 
 # Locating project root directory dynamically.
 root_dir = Path(".").resolve()
-if not (root_dir / "data").exists() and (root_dir / ".." / "data").exists():
+if not (root_dir / "Week 3").exists() and (root_dir / ".." / "Week 3").exists():
     root_dir = (root_dir / "..").resolve()
 
-forecast_path = root_dir / "data" / "processed" / "forecast_output.csv"
-model_path = root_dir / "models" / "demand_forecaster.joblib"
+forecast_path = root_dir / "Week 3" / "forecast_output.csv"
+model_path = root_dir / "Week 3" / "demand_forecaster.joblib"
 
-# Loading forecast dataset into memory.
 if forecast_path.exists():
     df_forecast = pd.read_csv(forecast_path, parse_dates=["date"])
 else:
     df_forecast = pd.DataFrame()
 
 
-# Defining Pydantic request models.
+def calculate_safety_stock(
+    demand_std: float, lead_time_days: int = 7, service_level: float = 0.95
+) -> float:
+    z_score = float(norm.ppf(service_level))
+    sigma_lead_time = demand_std * np.sqrt(lead_time_days)
+    return float(max(0.0, z_score * sigma_lead_time))
+
+
+def calculate_reorder_point(
+    mean_daily_demand: float,
+    demand_std: float,
+    lead_time_days: int = 7,
+    service_level: float = 0.95,
+) -> tuple:
+    lead_time_demand = mean_daily_demand * lead_time_days
+    safety_stock = calculate_safety_stock(
+        demand_std, lead_time_days, service_level
+    )
+    return (
+        float(lead_time_demand),
+        float(safety_stock),
+        float(lead_time_demand + safety_stock),
+    )
+
+
+def calculate_suggested_replenishment(
+    current_stock: float,
+    reorder_point: float,
+    forecast_horizon_demand: float,
+    pack_size: int = 6,
+    min_order_qty: int = 12,
+) -> int:
+    net_requirement = reorder_point - current_stock + forecast_horizon_demand
+    if net_requirement <= 0:
+        return 0
+    order_qty = max(net_requirement, float(min_order_qty))
+    packs = int(np.ceil(order_qty / pack_size))
+    return int(packs * pack_size)
+
+
+def assess_stockout_risk(
+    current_stock: float,
+    lead_time_demand: float,
+    lead_time_std: float,
+    reorder_point: float,
+) -> tuple:
+    if current_stock < lead_time_demand:
+        risk_category = "HIGH"
+    elif current_stock < reorder_point:
+        risk_category = "MEDIUM"
+    else:
+        risk_category = "SAFE"
+
+    if lead_time_std <= 1e-4:
+        stockout_prob = 1.0 if current_stock < lead_time_demand else 0.0
+    else:
+        z_val = (current_stock - lead_time_demand) / lead_time_std
+        stockout_prob = float(norm.sf(z_val))
+
+    return risk_category, round(float(stockout_prob) * 100, 1)
+
+
+def evaluate_forecasts(
+    y_true: np.ndarray, y_pred: np.ndarray, model_name: str = "Model"
+) -> dict:
+    y_pred_clipped = np.clip(y_pred, 0, None)
+    mae = float(np.mean(np.abs(y_true - y_pred_clipped)))
+    rmse = float(np.sqrt(np.mean((y_true - y_pred_clipped) ** 2)))
+    wape = (
+        float((np.sum(np.abs(y_true - y_pred_clipped)) / np.sum(y_true)) * 100)
+        if np.sum(y_true) > 0
+        else 0.0
+    )
+    bias = (
+        float((np.sum(y_pred_clipped - y_true) / np.sum(y_true)) * 100)
+        if np.sum(y_true) > 0
+        else 0.0
+    )
+    mask = y_true > 0
+    mape = (
+        float(
+            np.mean(
+                np.abs(
+                    (y_true[mask] - y_pred_clipped[mask]) / y_true[mask]
+                )
+            )
+            * 100
+        )
+        if np.any(mask)
+        else 0.0
+    )
+    return {
+        "model": model_name,
+        "mae": round(mae, 3),
+        "rmse": round(rmse, 3),
+        "wape_pct": round(wape, 2),
+        "mape_nonzero_pct": round(mape, 2),
+        "bias_pct": round(bias, 2),
+    }
+
+
 class ForecastRequest(BaseModel):
     item_id: str = Field(
         ...,
@@ -96,7 +189,6 @@ class ReplenishmentRequest(BaseModel):
     )
 
 
-# Defining Pydantic response models.
 class ForecastResponse(BaseModel):
     item_id: str
     store_id: str
@@ -126,7 +218,6 @@ class ReplenishmentResponse(BaseModel):
 
 @app.get("/health", summary="Health Check")
 def health_check():
-    # Checking API operational status and loaded dataset availability.
     return {
         "status": "healthy",
         "service": "demand-forecasting-api",
@@ -139,7 +230,6 @@ def health_check():
 
 @app.get("/products", summary="List Monitored Products and Stores")
 def get_products():
-    # Returning catalog of monitored products and stores.
     if df_forecast.empty:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -157,7 +247,6 @@ def get_products():
 
 @app.get("/metrics", summary="Model Performance Scorecard")
 def get_model_metrics():
-    # Computing and returning model evaluation scorecard.
     if df_forecast.empty:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -184,7 +273,6 @@ def get_model_metrics():
     "/forecast", response_model=ForecastResponse, summary="Generate Demand Forecast"
 )
 def generate_forecast(request: ForecastRequest):
-    # Validating item and store presence in forecast registry.
     sub = df_forecast[
         (df_forecast["item_id"] == request.item_id)
         & (df_forecast["store_id"] == request.store_id)
@@ -196,7 +284,6 @@ def generate_forecast(request: ForecastRequest):
             detail=f"Item '{request.item_id}' at store '{request.store_id}' not found in catalog.",
         )
 
-    # Slicing predictions for requested horizon.
     horizon_sub = sub.head(request.horizon_days)
     dates = horizon_sub["date"].dt.strftime("%Y-%m-%d").tolist()
     daily_preds = [round(float(v), 2) for v in horizon_sub["best_forecast"].values]
@@ -221,7 +308,6 @@ def generate_forecast(request: ForecastRequest):
     summary="Generate Replenishment Recommendation",
 )
 def generate_replenishment(request: ReplenishmentRequest):
-    # Validating item and store presence in dataset.
     sub = df_forecast[
         (df_forecast["item_id"] == request.item_id)
         & (df_forecast["store_id"] == request.store_id)
@@ -233,7 +319,6 @@ def generate_replenishment(request: ReplenishmentRequest):
             detail=f"Item '{request.item_id}' at store '{request.store_id}' not found.",
         )
 
-    # Calculating statistical demand parameters.
     mean_daily = float(sub["best_forecast"].mean())
     std_daily = (
         float(sub["sales"].std())
@@ -241,7 +326,6 @@ def generate_replenishment(request: ReplenishmentRequest):
         else float(sub["best_forecast"].std() + 0.5)
     )
 
-    # Calculating safety stock and reorder point.
     ltd, ss, rop = calculate_reorder_point(
         mean_daily_demand=mean_daily,
         demand_std=std_daily,
@@ -251,7 +335,6 @@ def generate_replenishment(request: ReplenishmentRequest):
 
     sigma_ltd = std_daily * np.sqrt(request.lead_time_days)
 
-    # Assessing stockout risk status.
     risk, prob = assess_stockout_risk(
         current_stock=request.current_stock,
         lead_time_demand=ltd,
@@ -259,7 +342,6 @@ def generate_replenishment(request: ReplenishmentRequest):
         reorder_point=rop,
     )
 
-    # Calculating suggested replenishment order quantity.
     horizon_demand = float(sub["best_forecast"].sum())
     order_qty = calculate_suggested_replenishment(
         current_stock=request.current_stock,
@@ -269,7 +351,6 @@ def generate_replenishment(request: ReplenishmentRequest):
         min_order_qty=request.min_order_qty,
     )
 
-    # Generating human-readable executive summary.
     if risk == "HIGH":
         summary = f"CRITICAL: Stock ({request.current_stock}) is below lead-time demand ({ltd:.1f}). Place urgent order of {order_qty} units."
     elif risk == "MEDIUM":

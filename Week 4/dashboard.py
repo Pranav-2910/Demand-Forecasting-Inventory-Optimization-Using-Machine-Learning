@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from scipy.stats import norm
 import streamlit as st
 
 # Configuring Streamlit dashboard page layout and styling.
@@ -15,26 +16,201 @@ st.set_page_config(
 
 # Locating project root directory dynamically.
 root_dir = Path(".").resolve()
-if not (root_dir / "data").exists() and (root_dir / ".." / "data").exists():
+if not (root_dir / "Week 3").exists() and (root_dir / ".." / "Week 3").exists():
     root_dir = (root_dir / "..").resolve()
 
-forecast_path = root_dir / "data" / "processed" / "forecast_output.csv"
-replenishment_path = (
-    root_dir / "data" / "processed" / "replenishment_recommendations.csv"
-)
-features_path = root_dir / "data" / "processed" / "features_engineered.csv"
+forecast_path = root_dir / "Week 3" / "forecast_output.csv"
+replenishment_path = root_dir / "Week 3" / "replenishment_recommendations.csv"
+features_path = root_dir / "Week 2" / "features_engineered.csv"
+
+
+def calculate_safety_stock(
+    demand_std: float, lead_time_days: int = 7, service_level: float = 0.95
+) -> float:
+    z_score = float(norm.ppf(service_level))
+    sigma_lead_time = demand_std * np.sqrt(lead_time_days)
+    return float(max(0.0, z_score * sigma_lead_time))
+
+
+def calculate_reorder_point(
+    mean_daily_demand: float,
+    demand_std: float,
+    lead_time_days: int = 7,
+    service_level: float = 0.95,
+) -> tuple:
+    lead_time_demand = mean_daily_demand * lead_time_days
+    safety_stock = calculate_safety_stock(
+        demand_std, lead_time_days, service_level
+    )
+    return (
+        float(lead_time_demand),
+        float(safety_stock),
+        float(lead_time_demand + safety_stock),
+    )
+
+
+def calculate_suggested_replenishment(
+    current_stock: float,
+    reorder_point: float,
+    forecast_horizon_demand: float,
+    pack_size: int = 6,
+    min_order_qty: int = 12,
+) -> int:
+    net_requirement = reorder_point - current_stock + forecast_horizon_demand
+    if net_requirement <= 0:
+        return 0
+    order_qty = max(net_requirement, float(min_order_qty))
+    packs = int(np.ceil(order_qty / pack_size))
+    return int(packs * pack_size)
+
+
+def assess_stockout_risk(
+    current_stock: float,
+    lead_time_demand: float,
+    lead_time_std: float,
+    reorder_point: float,
+) -> tuple:
+    if current_stock < lead_time_demand:
+        risk_category = "HIGH"
+    elif current_stock < reorder_point:
+        risk_category = "MEDIUM"
+    else:
+        risk_category = "SAFE"
+
+    if lead_time_std <= 1e-4:
+        stockout_prob = 1.0 if current_stock < lead_time_demand else 0.0
+    else:
+        z_val = (current_stock - lead_time_demand) / lead_time_std
+        stockout_prob = float(norm.sf(z_val))
+
+    return risk_category, round(float(stockout_prob) * 100, 1)
+
+
+def generate_replenishment_recommendations(
+    forecast_df: pd.DataFrame,
+    lead_time_days: int = 7,
+    service_level: float = 0.95,
+    pack_size: int = 6,
+    min_order_qty: int = 12,
+) -> pd.DataFrame:
+    item_groups = forecast_df.groupby(["store_id", "item_id"])
+    recommendations = []
+
+    for (store_id, item_id), group in item_groups:
+        forecast_demand = group["best_forecast"].sum()
+        mean_forecast_daily = group["best_forecast"].mean()
+        actual_sales_std = (
+            group["sales"].std()
+            if group["sales"].std() > 0
+            else group["best_forecast"].std() + 0.5
+        )
+
+        ltd, ss, rop = calculate_reorder_point(
+            mean_daily_demand=mean_forecast_daily,
+            demand_std=actual_sales_std,
+            lead_time_days=lead_time_days,
+            service_level=service_level,
+        )
+
+        sigma_ltd = actual_sales_std * np.sqrt(lead_time_days)
+        simulated_stock = int(
+            np.clip(
+                round(ltd * np.random.RandomState(hash(item_id) % 10000).uniform(0.5, 1.8)),
+                0,
+                None,
+            )
+        )
+
+        risk_level, stockout_prob = assess_stockout_risk(
+            current_stock=simulated_stock,
+            lead_time_demand=ltd,
+            lead_time_std=sigma_ltd,
+            reorder_point=rop,
+        )
+
+        suggested_order = calculate_suggested_replenishment(
+            current_stock=simulated_stock,
+            reorder_point=rop,
+            forecast_horizon_demand=forecast_demand,
+            pack_size=pack_size,
+            min_order_qty=min_order_qty,
+        )
+
+        recommendations.append(
+            {
+                "store_id": store_id,
+                "item_id": item_id,
+                "lead_time_days": lead_time_days,
+                "service_level_target": f"{service_level * 100:.0f}%",
+                "mean_daily_forecast": round(mean_forecast_daily, 2),
+                "horizon_28d_forecast": round(forecast_demand, 1),
+                "lead_time_demand": round(ltd, 1),
+                "safety_stock": round(ss, 1),
+                "reorder_point": round(rop, 1),
+                "current_stock": simulated_stock,
+                "stockout_risk": risk_level,
+                "stockout_probability_pct": stockout_prob,
+                "suggested_order_qty": suggested_order,
+            }
+        )
+
+    df_rec = pd.DataFrame(recommendations)
+    return df_rec.sort_values(
+        by=["stockout_probability_pct", "suggested_order_qty"], ascending=False
+    ).reset_index(drop=True)
+
+
+def evaluate_forecasts(
+    y_true: np.ndarray, y_pred: np.ndarray, model_name: str = "Model"
+) -> dict:
+    y_pred_clipped = np.clip(y_pred, 0, None)
+    mae = float(np.mean(np.abs(y_true - y_pred_clipped)))
+    rmse = float(np.sqrt(np.mean((y_true - y_pred_clipped) ** 2)))
+    wape = (
+        float((np.sum(np.abs(y_true - y_pred_clipped)) / np.sum(y_true)) * 100)
+        if np.sum(y_true) > 0
+        else 0.0
+    )
+    bias = (
+        float((np.sum(y_pred_clipped - y_true) / np.sum(y_true)) * 100)
+        if np.sum(y_true) > 0
+        else 0.0
+    )
+    mask = y_true > 0
+    mape = (
+        float(
+            np.mean(
+                np.abs(
+                    (y_true[mask] - y_pred_clipped[mask]) / y_true[mask]
+                )
+            )
+            * 100
+        )
+        if np.any(mask)
+        else 0.0
+    )
+    return {
+        "model": model_name,
+        "mae": round(mae, 3),
+        "rmse": round(rmse, 3),
+        "wape_pct": round(wape, 2),
+        "mape_nonzero_pct": round(mape, 2),
+        "bias_pct": round(bias, 2),
+    }
 
 
 @st.cache_data
 def load_dashboard_data():
-    # Ingesting processed datasets for dashboard visualization.
     df_fc = pd.read_csv(forecast_path, parse_dates=["date"])
     df_rp = pd.read_csv(replenishment_path)
-    df_feat = pd.read_csv(features_path, parse_dates=["date"])
+    df_feat = (
+        pd.read_csv(features_path, parse_dates=["date"])
+        if features_path.exists()
+        else df_fc
+    )
     return df_fc, df_rp, df_feat
 
 
-# Loading cached analytical datasets.
 df_forecast, df_replenishment, df_features = load_dashboard_data()
 
 # Rendering navigation sidebar.
@@ -49,7 +225,6 @@ page = st.sidebar.radio(
         "Model Performance & Benchmarks",
     ],
 )
-
 st.sidebar.markdown("---")
 st.sidebar.caption("Retail Operations Analytics • Walmart M5 Case Study")
 
@@ -62,7 +237,6 @@ if page == "Demand Overview":
         "Real-time visibility into out-of-sample actual sales, winning model forecasts, and aggregate forecast errors."
     )
 
-    # Filtering data by category.
     categories = ["All"] + sorted(df_forecast["cat_id"].unique().tolist())
     selected_cat = st.selectbox("Filter by Category", categories)
 
@@ -70,7 +244,6 @@ if page == "Demand Overview":
     if selected_cat != "All":
         filtered_df = filtered_df[filtered_df["cat_id"] == selected_cat]
 
-    # Computing aggregate operational metrics.
     total_actual = filtered_df["sales"].sum()
     total_forecast = filtered_df["best_forecast"].sum()
     total_abs_error = filtered_df["abs_error"].sum()
@@ -83,7 +256,6 @@ if page == "Demand Overview":
         else 0
     )
 
-    # Displaying high-level KPI cards.
     kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
     kpi1.metric("Actual Demand (Units)", f"{total_actual:,.0f}")
     kpi2.metric(
@@ -101,7 +273,6 @@ if page == "Demand Overview":
 
     st.markdown("---")
 
-    # Aggregating daily actuals vs forecast.
     daily_trend = (
         filtered_df.groupby("date")
         .agg(
@@ -112,7 +283,6 @@ if page == "Demand Overview":
         .reset_index()
     )
 
-    # Rendering Plotly time series chart for demand overview.
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
@@ -141,7 +311,6 @@ if page == "Demand Overview":
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # Displaying daily error distribution.
     col_left, col_right = st.columns(2)
     with col_left:
         fig_err = px.bar(
@@ -155,7 +324,6 @@ if page == "Demand Overview":
         st.plotly_chart(fig_err, use_container_width=True)
 
     with col_right:
-        # Displaying cumulative sales comparison.
         daily_trend["cum_actual"] = daily_trend["actual_sales"].cumsum()
         daily_trend["cum_forecast"] = daily_trend["forecast_sales"].cumsum()
         fig_cum = go.Figure()
@@ -192,7 +360,6 @@ elif page == "Product / Store Forecasts":
         "Inspect individual SKU demand dynamics, compare ML predictions against heuristic baselines, and review price elasticity."
     )
 
-    # Selecting item to inspect.
     available_items = sorted(df_forecast["item_id"].unique().tolist())
     selected_item = st.selectbox(
         "Select Product SKU", available_items, index=0
@@ -205,7 +372,6 @@ elif page == "Product / Store Forecasts":
         df_features["item_id"] == selected_item
     ].sort_values("date")
 
-    # Displaying product metadata.
     cat = item_df["cat_id"].iloc[0]
     dept = item_df["dept_id"].iloc[0]
     store = item_df["store_id"].iloc[0]
@@ -231,7 +397,6 @@ elif page == "Product / Store Forecasts":
 
     st.markdown("---")
 
-    # Plotting granular forecast trajectory vs baselines.
     fig_traj = go.Figure()
     fig_traj.add_trace(
         go.Scatter(
@@ -280,7 +445,6 @@ elif page == "Product / Store Forecasts":
     )
     st.plotly_chart(fig_traj, use_container_width=True)
 
-    # Plotting historical seasonality profile.
     st.subheader("Historical Demand Profiling (Last 120 Days)")
     hist_recent = item_hist.tail(120)
     fig_hist = px.line(
@@ -302,7 +466,6 @@ elif page == "Inventory Risk & Replenishment":
         "Convert probabilistic machine learning forecasts into optimal safety stocks, reorder points (ROP), and automated replenishment orders."
     )
 
-    # Interactive policy sliders.
     st.sidebar.subheader("Policy Configuration Parameters")
     lead_time = st.sidebar.slider(
         "Supplier Lead Time (Days)",
@@ -320,9 +483,6 @@ elif page == "Inventory Risk & Replenishment":
     )
     pack_size = st.sidebar.selectbox("Wholesale Pack Size", [6, 12, 24], index=0)
 
-    # Recalculating dynamic inventory policies with user parameters.
-    from src.inventory import generate_replenishment_recommendations
-
     df_dynamic_recs = generate_replenishment_recommendations(
         df_forecast,
         lead_time_days=lead_time,
@@ -331,7 +491,6 @@ elif page == "Inventory Risk & Replenishment":
         min_order_qty=pack_size * 2,
     )
 
-    # Risk tier metrics.
     high_risk_count = (df_dynamic_recs["stockout_risk"] == "HIGH").sum()
     med_risk_count = (df_dynamic_recs["stockout_risk"] == "MEDIUM").sum()
     safe_count = (df_dynamic_recs["stockout_risk"] == "SAFE").sum()
@@ -345,7 +504,6 @@ elif page == "Inventory Risk & Replenishment":
 
     st.markdown("---")
 
-    # Plotting stock vs ROP for highest risk SKUs.
     st.subheader("Current Stock vs Reorder Point (ROP) for Top Priority SKUs")
     top_risk = df_dynamic_recs.head(15)
 
@@ -374,7 +532,6 @@ elif page == "Inventory Risk & Replenishment":
     )
     st.plotly_chart(fig_rop, use_container_width=True)
 
-    # Filterable replenishment recommendation table.
     st.subheader("Actionable Replenishment Recommendations Table")
     risk_filter = st.multiselect(
         "Filter by Risk Level",
@@ -412,9 +569,6 @@ elif page == "Model Performance & Benchmarks":
         "Comprehensive out-of-sample benchmark of machine learning models against heuristic baselines using chronological evaluation."
     )
 
-    # Computing metrics table across models.
-    from src.metrics import evaluate_forecasts
-
     models_data = [
         ("Naive (Lag 7)", df_forecast["naive_lag7"].values),
         ("Moving Average (7-Day)", df_forecast["moving_avg_7"].values),
@@ -422,7 +576,7 @@ elif page == "Model Performance & Benchmarks":
         ("Seasonal Naive (Lag 28)", df_forecast["seasonal_naive_28"].values),
         ("Random Forest", df_forecast["pred_random_forest"].values),
         ("LightGBM", df_forecast["pred_lightgbm"].values),
-        ("XGBoost (Winner)", df_forecast["pred_xgboost"].values),
+        ("XGBoost (Winner)", df_forecast["best_forecast"].values),
     ]
 
     scorecard_list = [
@@ -448,7 +602,6 @@ elif page == "Model Performance & Benchmarks":
 
     col1, col2 = st.columns(2)
     with col1:
-        # WAPE comparison chart.
         fig_wape = px.bar(
             df_perf,
             x="model",
@@ -461,7 +614,6 @@ elif page == "Model Performance & Benchmarks":
         st.plotly_chart(fig_wape, use_container_width=True)
 
     with col2:
-        # Residual error histogram.
         fig_res = px.histogram(
             df_forecast,
             x="forecast_error",

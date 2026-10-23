@@ -16,5 +16,5 @@ To establish credible benchmarks for machine learning models, four standard heur
 
 ## Key Baseline Insights
 - **Seasonal Naive (Lag 28)** captures monthly cyclic demand but has higher latency.
-- **Naive (Lag 7)** effectively captures strong weekly day-of-week seasonality (e.g. Saturday shopping peaks).
-- **Moving Averages** smooth noise and reduce variance, but introduce systematic lag during abrupt promotional demand spikes.
+- **Naive (Lag 7)** effectively captures strong weekly day-of-week seasonality.
+- **Moving Averages** smooth noise and reduce variance, achieving lowest baseline error.
