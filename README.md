@@ -1,34 +1,39 @@
 # Demand Forecasting & Inventory Optimization Using Machine Learning
-### Data Science & Machine Learning Internship — Phase 2: Weeks 1, 2 & 3 Implementation
+### Data Science & Machine Learning Internship — Complete Four-Week Production System
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Status](https://img.shields.io/badge/Weeks%201--3-Completed-success.svg)](#)
-[![Dataset](https://img.shields.io/badge/Dataset-Walmart%20M5-orange.svg)](https://www.kaggle.com/c/m5-forecasting-accuracy)
-[![Winning Model](https://img.shields.io/badge/Best%20Model-XGBoost%20(38.0%25%20WAPE)-brightgreen.svg)](#)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
+[![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-orange.svg)](https://xgboost.readthedocs.io/)
+[![Tests Passing](https://img.shields.io/badge/pytest-5%20passed-brightgreen.svg)](https://docs.pytest.org/)
+[![Status](https://img.shields.io/badge/Project-Complete%20(Weeks%201--4)-success.svg)](#)
 
 ---
 
-## 1. Project Overview & Business Context
+## 1. Executive Summary & Problem Context
 
-Retailers and supply-chain organizations face the perpetual challenge of balancing high on-shelf product availability against the substantial financial carrying costs of holding excess inventory. Inaccurate demand forecasting leads directly to stockouts, lost sales revenue, expedited replenishment freight, or costly inventory markdowns and spoilage.
+In multi-echelon retail supply chains, operations teams must balance on-shelf product availability against the substantial working capital and physical carrying costs of excess inventory. Inaccurate demand estimates trigger stockouts, lost sales, emergency supplier replenishment fees, and brand defection, or conversely cause severe overstocking, capital lockup, and margin-eroding markdowns.
 
-This repository covers **Weeks 1, 2, and 3** of an end-to-end predictive analytics and inventory decision-support system:
-1. **Audits and Ingests Multi-Source Retail Telemetry** (daily unit sales, weekly shelf prices, and calendar/promotional events) spanning 1,913 days across retail departments.
-2. **Distinguishes True Zero Demand from Stockout Periods** to prevent negative demand bias in downstream models.
+This repository implements a production-grade, end-to-end **Predictive Demand Forecasting and Inventory Decision-Support System** developed across four structured lifecycle milestones:
+1. **Audits Multi-Source Retail Telemetry** (1,913 days of point-of-sale sales, weekly shelf prices, promotional calendars, and SNAP distribution schedules across Walmart retail stores).
+2. **Differentiates Unconstrained Demand from Observed Sales** during stockouts to prevent persistent downward inventory spirals.
 3. **Engineers Non-Leaking Predictive Features** (lags strictly $\ge 7$ days, rolling window statistics anchored prior to forecast horizons, calendar attributes, and promotional markdown indicators).
 4. **Enforces Strict Chronological Splitting** (`Train` $\rightarrow$ `Validation` $\rightarrow$ `Test`) to guarantee zero forward-looking data leakage.
-5. **Establishes Rigorous Baseline Forecast Benchmarks** (Naive Lag 7, Seasonal Naive Lag 28, 7-Day & 28-Day Moving Averages) evaluated on MAE, RMSE, WAPE, and Forecast Bias.
-6. **Trains, Tunes & Evaluates Supervised Machine Learning Models** (Random Forest, LightGBM, and XGBoost) on a strictly out-of-sample 28-day horizon, demonstrating statistically significant gains over baselines.
-7. **Translates Demand Forecasts into Inventory Replenishment Decisions**, calculating dynamic Safety Stock ($SS$), Reorder Points ($ROP$), Stockout Risk probabilities, and actionable order quantities adhering to case-pack constraints under a documented 95% service level.
+5. **Benchmarks Against Heuristic Baselines** (Naive Lag 7, Seasonal Naive Lag 28, 7-Day & 28-Day Moving Averages) evaluated across MAE, RMSE, WAPE, and Forecast Bias.
+6. **Trains, Tunes & Evaluates Machine Learning Models** (Random Forest, LightGBM, and XGBoost), with the winning **XGBoost regressor** achieving **38.03% WAPE** and **5.612 unit MAE** on a 28-day out-of-sample test horizon.
+7. **Translates Demand Forecasts into Inventory Replenishment Decisions**, calculating dynamic **Safety Stock ($SS$)**, **Reorder Points ($ROP$)**, **Stockout Probability ($P(\text{Stockout})$)**, and case-pack rounded order quantities under a documented 95% cycle service level.
+8. **Operationalizes Decision Support** through an interactive 4-page **Streamlit Dashboard** and a high-throughput **FastAPI REST Service** backed by automated unit tests.
 
 ---
 
-## 2. Repository Structure
+## 2. Complete Repository Organization
+
+The repository is organized strictly into four self-contained milestone deliverables matching the internship lifecycle requirements:
 
 ```
 P1/
-├── Week 1/                                   # Week 1 Deliverables: Data Ingestion & Quality Audit
-│   ├── data_dictionary.md                   # Full schema definitions, types, sources, and nullability
+├── Week 1/                                   # Week 1 Deliverables: Ingestion, Quality Audit & EDA
+│   ├── data_dictionary.md                   # Schema definitions, types, sources, and nullability
 │   ├── data_source_notes.md                 # Unconstrained demand vs observed sales during stockouts
 │   ├── data_quality_report.md               # Quality audit report on nulls, duplicates, and continuity
 │   ├── sales_interim.csv                    # Cleaned longitudinal interim dataset (14.2 MB)
@@ -54,7 +59,7 @@ P1/
 │       └── 02_baseline_comparison.png       # Sample product baseline forecasts vs actual demand
 │
 ├── Week 3/                                   # Week 3 Deliverables: ML Training, Evaluation & Replenishment
-│   ├── model_training.py                    # Standalone model training, cross-validation & evaluation script
+│   ├── model_training.py                    # Standalone model training, tuning & evaluation script
 │   ├── inventory_replenishment.py           # Safety stock, ROP, stockout probability & ordering logic
 │   ├── demand_forecaster.joblib             # Serialized winning XGBoost demand forecasting model (662 KB)
 │   ├── model_evaluation_report.md           # Comparative evaluation report and scorecard vs baselines
@@ -69,158 +74,131 @@ P1/
 │       ├── 03_residual_distribution.png     # Forecast error residual distribution and homoscedasticity
 │       └── 03_stock_vs_rop.png              # Inventory on-hand vs Reorder Point safety buffers
 │
-├── requirements.txt                         # Pinned project dependencies
+├── Week 4/                                   # Week 4 Deliverables: Dashboard, API & Final Reporting
+│   ├── dashboard.py                         # Interactive multi-page Streamlit decision support application
+│   ├── api.py                               # Production FastAPI REST service with Pydantic validation
+│   ├── final_analytical_report.md           # Formal executive business and technical methodology report
+│   ├── final_presentation.md                # 8-slide executive presentation deck for stakeholders
+│   ├── test_pipeline.py                     # Automated unit test suite verifying metrics, inventory & API
+│   ├── README.md                            # Week 4 milestone overview and runbook
+│   └── requirements.txt                     # Pinned project dependencies
+│
+├── requirements.txt                         # Root dependency specifications
 ├── .gitignore                               # Standardized Git ignore rules
-└── README.md                                # Project overview, methodology, and execution guide
+└── README.md                                # Root comprehensive documentation & execution guide
 ```
 
 ---
 
-## 3. Week 1: Data Collection, Quality Checks & Exploratory Analysis
+## 3. Four-Week Technical Architecture & Methodology
 
-### 3.1 Data Provenance & Scope
-The data is derived from point-of-sale transactions across Walmart retail stores (Kaggle M5 Forecasting benchmark):
-- **Sales History**: 1,913 days of daily unit sales across merchandise departments (`HOBBIES`, `FOODS`, `HOUSEHOLD`).
-- **Calendar Metadata**: Date attributes, national/cultural/sporting events, and state-level SNAP (Supplemental Nutrition Assistance Program) distribution schedules.
-- **Selling Prices**: Weekly store-level shelf prices per SKU.
-
-### 3.2 Data Quality Audit Findings
-A comprehensive automated audit was conducted on the longitudinal sales dataset:
-- **Date Continuity**: Verified **1,913 contiguous calendar days** (`2011-01-29` to `2016-04-24`) with zero missing days.
-- **Key Uniqueness**: **0 duplicate records** on composite key `(store_id, item_id, date)`.
-- **Value Validity**: **0 negative sales quantities**; zero negative or invalid prices.
-- **Intermittency & Zero Sales**: 17.14% of overall records contained zero sales.
-
-### 3.3 Stockout Identification vs. Unconstrained Demand
-> [!IMPORTANT]
-> Observed sales during stockouts register as $S_t = 0$, but true unconstrained consumer demand is $D_t > 0$. Naive models trained on raw sales will interpret out-of-stock periods as lack of consumer interest, creating a self-reinforcing downward spiral of inventory starvation.
-
-**Methodological Treatment**:
-- **Pre-Launch Period Separation**: Rows before an item's first observed sale or pricing record are flagged as `is_active = False` to prevent negative demand bias.
-- **Potential Stockout Flagging**: Active records (`is_active = True`) with zero sales despite valid pricing and positive historical demand velocity are flagged as `potential_stockout` (13.38% of active records).
-- **Variance Protection**: Downstream demand variance ($\sigma_d$) calculations use active windows, preventing artificial deflation of safety stock buffers.
-
-### 3.4 Key Exploratory Findings
-1. **Strong Weekend Seasonality**: Friday through Sunday account for the majority of weekly sales volume. Day-of-week lag features ($t-7, t-14$) provide strong predictive signals.
-2. **Promotional Event Lifts**: National holidays and sporting events (e.g., Super Bowl) stimulate substantial demand spikes, while Christmas Day exhibits absolute store closures (true zeros).
-3. **SNAP Food Stamp Impact**: Sales on SNAP distribution days in California exhibit a statistically significant lift over non-SNAP days.
-
----
-
-## 4. Week 2: Feature Engineering & Baseline Forecasts
-
-### 4.1 Chronological Partitioning Plan (Zero Leakage)
-To ensure that models are evaluated under realistic forward-looking operational conditions, a **strict chronological rolling window partition** was established:
-
-| Partition | Start Date | End Date | Duration | Record Count | Operational Purpose |
-|---|---|---|---|---|---|
-| **Training** | `2011-01-29` | `2016-02-28` | ~5 years | 90,850 rows | Fitting model parameters and feature representations |
-| **Validation** | `2016-02-29` | `2016-03-27` | 28 days | 1,400 rows | Hyperparameter tuning and model selection |
-| **Testing** | `2016-03-28` | `2016-04-24` | 28 days | 1,400 rows | Final unbiased out-of-sample operational evaluation |
-
-*Forecast Horizon: 28 days (4 retail planning weeks).*
-
-### 4.2 Non-Leaking Feature Registry
-All features use strictly past information available at the forecast origin:
-- **Past-Only Lag Features**: `sales_lag_7`, `sales_lag_14`, `sales_lag_21`, `sales_lag_28`, `sales_lag_35`, `sales_lag_42`. All lags are strictly $\ge 7$ days prior to the target date.
-- **Anchored Rolling Statistics**: Rolling mean, standard deviation, and maximum over 7, 14, and 28 days, anchored strictly at `sales_lag_7` to eliminate contemporaneous leakage.
-- **Calendar & Event Features**: Day of week, day of month, month, year, weekend indicator, holiday event indicator, event category codes, and SNAP benefit distribution flags.
-- **Pricing & Promotions**: Selling price, price deviation from SKU historical mean, discount ratio relative to historical maximum, and promotional markdown flags.
-
-### 4.3 Baseline Forecasting Benchmarks
-
-Four standard heuristic baselines were evaluated on both validation and testing partitions using five key metrics:
-- **MAE** (Mean Absolute Error in units)
-- **RMSE** (Root Mean Squared Error)
-- **WAPE** (Weighted Absolute Percentage Error = $\frac{\sum |y - \hat{y}|}{\sum y} \times 100\%$, robust to intermittent zero sales)
-- **Non-Zero MAPE** (Mean Absolute Percentage Error calculated exclusively where actual demand $y > 0$)
-- **Forecast Bias** ($\frac{\sum (\hat{y} - y)}{\sum y} \times 100\%$, indicating over/under-prediction)
-
-#### Baseline Evaluation Scorecard
-
-| Model Name & Partition | MAE (Units) | RMSE | WAPE (%) | Non-Zero MAPE (%) | Forecast Bias (%) | Benchmark Role |
-|---|---|---|---|---|---|---|
-| `Naive (Lag 7) [Validation]` | 6.664 | 10.696 | 46.58% | 73.55% | -2.97% | Day-of-week persistence |
-| `Seasonal Naive (Lag 28) [Validation]` | 7.564 | 12.312 | 52.88% | 85.17% | +2.02% | Monthly cycle persistence |
-| `Moving Average (7-Day) [Validation]` | 6.400 | 10.401 | 44.73% | 68.45% | -3.54% | Short-term rolling trend |
-| `Moving Average (28-Day) [Validation]` | 6.402 | 10.247 | 44.75% | 67.65% | -0.60% | Medium-term rolling trend |
-| `Naive (Lag 7) [Test]` | 6.969 | 11.117 | 47.22% | 74.62% | +2.22% | Out-of-sample benchmark |
-| `Seasonal Naive (Lag 28) [Test]` | 7.023 | 11.642 | 47.58% | 67.47% | -3.07% | Out-of-sample benchmark |
-| `Moving Average (7-Day) [Test]` | 6.658 | 10.171 | 45.11% | 72.24% | +3.16% | Out-of-sample benchmark |
-| **`Moving Average (28-Day) [Test]`** | **6.219** | **9.634** | **42.14%** | **66.48%** | **+0.09%** | **Leading Benchmark** |
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 WEEK 1: INGESTION & AUDIT                              │
+│  Raw POS Sales (1,913 Days) ──► Date Continuity & Key Audit ──► Stockout Identification │
+│  Calendar & Pricing Feeds   ──► Zero Sales vs Intermittency  ──► Longitudinal Interim   │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │
+                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              WEEK 2: FEATURES & BASELINES                              │
+│  Non-Leaking Lags (t-7 to t-42) ──► Anchored Rolling Stats ──► Chronological Splits     │
+│  Calendar & Markdown Signals    ──► Heuristic Baselines   ──► WAPE & Bias Benchmarking │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │
+                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                       WEEK 3: ML TRAINING & REPLENISHMENT ENGINE                       │
+│  Random Forest / LightGBM / XGBoost ──► Cross-Validation Tuning ──► Champion XGBoost   │
+│  Lead Time Demand & Safety Stock   ──► Reorder Points (ROP)    ──► Pack-Size Orders   │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │
+                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                         WEEK 4: DECISION SUPPORT APPLICATIONS                          │
+│  Interactive Streamlit Dashboard ◄──► Enterprise FastAPI REST Service ◄──► Unit Tests  │
+│  Executive Analytical Report     ◄──► 8-Slide Final Presentation Deck ◄──► CI Test Run │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 5. Week 3: Model Training, Evaluation & Replenishment Logic
+## 4. Detailed Milestone Breakdown
 
-### 5.1 Machine Learning Modeling Methodology
-During Week 3, three competitive supervised machine learning algorithms were formulated and tuned to capture complex non-linear demand interactions:
-1. **Random Forest Regressor**: Non-parametric ensemble of 100 decision trees (`n_estimators=100`, `max_depth=12`, `min_samples_leaf=5`, `n_jobs=-1`).
-2. **LightGBM Regressor**: Fast, leaf-wise gradient boosting trees (`n_estimators=150`, `learning_rate=0.05`, `num_leaves=31`, `subsample=0.8`).
-3. **XGBoost Regressor**: Level-wise gradient boosting with second-order gradient optimization (`n_estimators=150`, `learning_rate=0.05`, `max_depth=6`, `subsample=0.8`, `colsample_bytree=0.8`, `reg_alpha=0.1`, `reg_lambda=1.0`).
+### 4.1 Week 1: Data Collection, Quality Checks & Exploratory Analysis
+- **Longitudinal Span**: Verified **1,913 contiguous calendar days** (`2011-01-29` to `2016-04-24`) across retail merchandise departments (`HOBBIES`, `FOODS`, `HOUSEHOLD`).
+- **Data Quality Audit**: Confirmed zero duplicate primary keys `(store_id, item_id, date)`, zero negative sales, and zero negative sell prices.
+- **Stockout vs Unconstrained Demand Protocol**:
+  - Point-of-sale data records observed sales ($S_t$), not latent demand ($D_t$). When stock runs out, $S_t = 0$ while $D_t > 0$.
+  - Items prior to their initial store launch date are flagged as `is_active = False` to prevent negative demand bias.
+  - Active items (`is_active = True`) with zero sales despite valid pricing and historical demand are flagged as `potential_stockout` (13.38% of active records).
+  - Demand variance ($\sigma_d$) calculations in replenishment logic use active periods, preventing artificial safety stock deflation.
+- **Exploratory Insights**:
+  - Strong day-of-week seasonality (sales surge on Friday through Sunday).
+  - Statistically significant sales lift on California SNAP benefit distribution days.
+  - Store closure on Christmas Day produces genuine structural zero sales.
 
-All candidate models were trained strictly on historical data up to `2016-02-28`, tuned on the chronological validation window (`2016-02-29` to `2016-03-27`), and evaluated once on the strictly withheld 28-day test partition (`2016-03-28` to `2016-04-24`).
+---
 
-### 5.2 Comparative Evaluation Scorecard (ML Models vs Baselines)
+### 4.2 Week 2: Feature Engineering & Baseline Forecasts
+- **Leakage Prevention Principle**: Every feature is strictly calculated using historical information available prior to the forecast horizon ($t \ge 7$).
+- **Engineered Feature Registry**:
+  - **Lags**: `sales_lag_7`, `sales_lag_14`, `sales_lag_21`, `sales_lag_28`, `sales_lag_35`, `sales_lag_42`.
+  - **Rolling Statistics**: Rolling mean, standard deviation, and maximum over 7, 14, and 28-day windows, anchored strictly at `sales_lag_7` to eliminate contemporaneous leakage.
+  - **Calendar Metadata**: Day of week, day of month, month, year, weekend indicator, holiday event indicator, event category codes, SNAP benefit distribution flags.
+  - **Pricing & Elasticity**: Selling price, price deviation from SKU historical average, promotional markdown ratios.
+- **Strict Chronological Partitions**:
+  - **Training Partition**: `2011-01-29` to `2016-02-28` (~5 years, 90,850 rows).
+  - **Validation Partition**: `2016-02-29` to `2016-03-27` (28 days, 1,400 rows).
+  - **Testing Partition**: `2016-03-28` to `2016-04-24` (28 days, 1,400 rows).
+- **Heuristic Baselines Scorecard**:
+  - Naive Lag 7, Seasonal Naive Lag 28, 7-Day Moving Average, and 28-Day Moving Average evaluated on MAE, RMSE, WAPE, and Forecast Bias.
+  - Best heuristic baseline: **Moving Average (28-Day)** at **42.14% WAPE** and **6.219 unit MAE**.
 
-The complete benchmark scorecard on the out-of-sample test window is presented below:
+---
 
-| Model / Baseline Name | MAE (Units) | RMSE | WAPE (%) | Non-Zero MAPE (%) | Forecast Bias (%) | Evaluation Status |
-|---|---|---|---|---|---|---|
-| `Naive (Lag 7) [Baseline]` | 6.969 | 11.117 | 47.22% | 74.62% | +2.22% | Heuristic Benchmark |
-| `Seasonal Naive (Lag 28) [Baseline]` | 7.023 | 11.642 | 47.58% | 67.47% | -3.07% | Heuristic Benchmark |
-| `Moving Average (7-Day) [Baseline]` | 6.658 | 10.171 | 45.11% | 72.24% | +3.16% | Heuristic Benchmark |
-| `Moving Average (28-Day) [Baseline]` | 6.219 | 9.634 | 42.14% | 66.48% | +0.09% | Best Heuristic Benchmark |
-| `Random Forest [ML]` | 5.717 | 8.489 | 38.74% | 63.40% | +3.29% | Evaluated Candidate |
-| `LightGBM [ML]` | 5.632 | 8.447 | 38.16% | 64.33% | +3.86% | Evaluated Candidate |
-| **`XGBoost [ML]`** | **5.612** | **8.410** | **38.03%** | **62.43%** | **+3.03%** | **Winning Champion Model** |
+### 4.3 Week 3: Model Training, Evaluation & Replenishment Logic
+- **Supervised Machine Learning Models**:
+  - **Random Forest**: 100 trees, `max_depth=12`, `min_samples_leaf=5`.
+  - **LightGBM**: Fast leaf-wise gradient boosting (`n_estimators=150`, `learning_rate=0.05`, `num_leaves=31`).
+  - **XGBoost**: Level-wise gradient boosting with second-order gradient regularization (`n_estimators=150`, `learning_rate=0.05`, `max_depth=6`, `reg_alpha=0.1`, `reg_lambda=1.0`).
+- **Comparative Evaluation Scorecard on 28-Day Test Set**:
 
-#### Key Analytical Insights
-1. **Significant Baseline Outperformance**: **XGBoost** surpasses the best heuristic baseline (`Moving Average 28-Day`), reducing WAPE from **42.14% to 38.03%** (a **4.11 percentage point improvement**, representing a **9.7% relative error reduction**) and decreasing RMSE from **9.634 to 8.410** (a **12.7% reduction**).
-2. **Balanced Forecast Bias**: The winning XGBoost model maintains a controlled bias of **+3.03%**. This modest positive bias is commercially desirable in retail, offering mild buffer protection against stockouts while preventing excessive capital tie-up.
-3. **Intermittent Robustness**: WAPE successfully overcomes MAPE distortion caused by intermittent zero-sales records, providing an actionable volume-weighted KPI for inventory planners.
+| Model Architecture | Model Category | MAE (Units) | RMSE | WAPE (%) | Non-Zero MAPE (%) | Forecast Bias (%) | Operational Status |
+|---|---|---|---|---|---|---|---|
+| `Naive (Lag 7)` | Heuristic Baseline | 6.969 | 11.117 | 47.22% | 74.62% | +2.22% | Baseline |
+| `Seasonal Naive (Lag 28)` | Heuristic Baseline | 7.023 | 11.642 | 47.58% | 67.47% | -3.07% | Baseline |
+| `Moving Average (7-Day)` | Heuristic Baseline | 6.658 | 10.171 | 45.11% | 72.24% | +3.16% | Baseline |
+| `Moving Average (28-Day)` | Heuristic Baseline | 6.219 | 9.634 | 42.14% | 66.48% | +0.09% | Best Baseline |
+| `Random Forest` | Machine Learning | 5.717 | 8.489 | 38.74% | 63.40% | +3.29% | Evaluated Candidate |
+| `LightGBM` | Machine Learning | 5.632 | 8.447 | 38.16% | 64.33% | +3.86% | Evaluated Candidate |
+| **`XGBoost`** | **Machine Learning** | **5.612** | **8.410** | **38.03%** | **62.43%** | **+3.03%** | **Winning Production Model** |
 
-### 5.3 Feature Importance & Demand Drivers
-Feature importance analysis from the winning XGBoost model reveals the primary structural drivers of consumer demand:
-- **`rolling_mean_28` (31.4% importance)**: Serves as the primary medium-term volume anchor.
-- **`sales_lag_7` (18.6% importance)**: Captures weekly day-of-week sales momentum.
-- **`rolling_mean_7` (12.8% importance)**: Detects immediate short-term demand velocity.
-- **`sell_price` & `discount_ratio` (9.5% importance)**: Captures consumer elasticity during price promotions.
-- **`day_of_week` & `is_weekend` (8.2% importance)**: Accounts for substantial weekend shopping surges.
+- **XGBoost Outperformance Highlights**:
+  - Outperforms the leading baseline by **4.11 percentage points of WAPE** (a **9.7% relative error reduction**).
+  - Reduces RMSE by **12.7%** (from 9.634 to 8.410 units).
+  - Maintains a balanced forecast bias of **+3.03%**, providing mild buffer protection against stockouts while avoiding excessive holding costs.
+- **Top Demand Drivers**: `rolling_mean_28` (31.4%), `sales_lag_7` (18.6%), `rolling_mean_7` (12.8%), `sell_price` (9.5%), `day_of_week` (8.2%).
 
-### 5.4 Inventory Replenishment Logic & Mathematical Formulation
-Forecast demand outputs are directly coupled to an inventory replenishment optimization engine:
+#### Statistical Replenishment Mathematics
+1. **Expected Lead Time Demand ($D_L$)**:
+   $$D_L = \bar{d} \times L$$
+2. **Dynamic Safety Stock ($SS$)**:
+   $$SS = Z_{\alpha} \times \sigma_d \times \sqrt{L}$$
+   Where $Z_{\alpha} = 1.645$ for a **95% cycle service level** ($CSL$), $L = 7\text{ days}$ lead time, and $\sigma_d$ is the standard deviation of daily demand over active periods.
+3. **Reorder Point ($ROP$)**:
+   $$ROP = D_L + SS$$
+4. **Stockout Probability ($P(\text{Stockout})$)**:
+   $$P(\text{Stockout}) = P(D_L > I_{current}) = 1 - \Phi\left(\frac{I_{current} - D_L}{\sigma_L}\right)$$
+   - **HIGH RISK**: $I_{current} < D_L$ (Stockout imminent during lead time; $P \ge 50\%$).
+   - **MEDIUM RISK**: $D_L \le I_{current} < ROP$ (Inventory has breached reorder point; safety buffer eroding).
+   - **SAFE**: $I_{current} \ge ROP$ (Inventory remains above reorder point).
+5. **Suggested Order Quantity ($Q$)**:
+   $$Q_{raw} = \max\left(0, ROP - I_{current} + \hat{D}_{horizon}\right)$$
+   Adjusted to wholesale case pack constraints ($\text{pack\_size} = 6$, $\text{MOQ} = 12$):
+   $$Q = \max\left(\text{MOQ}, \left\lceil \frac{Q_{raw}}{\text{pack\_size}} \right\rceil \times \text{pack\_size}\right)$$
 
-#### 1. Safety Stock ($SS$) Formulation
-To protect against demand variability during replenishment lead time, Safety Stock is computed under a target Cycle Service Level ($CSL$):
-$$SS = Z_{\alpha} \times \sigma_d \times \sqrt{L}$$
-Where:
-- $Z_{\alpha} = 1.645$ for a **95% cycle service level** ($CSL$).
-- $L = 7\text{ days}$ (deterministic supplier lead time).
-- $\sigma_d$: Standard deviation of daily demand calculated over active listing windows.
-
-#### 2. Reorder Point ($ROP$) Formulation
-The Reorder Point establishes the inventory trigger threshold:
-$$ROP = D_L + SS = (\bar{d} \times L) + SS$$
-Where $D_L = \bar{d} \times L$ represents expected lead-time demand based on daily forecast velocity.
-
-#### 3. Stockout Risk Probability & Categorization
-The probability of a stockout occurring prior to replenishment arrival is calculated using the standard normal cumulative distribution function $\Phi$:
-$$P(\text{Stockout}) = P(D_L > I_{current}) = 1 - \Phi\left(\frac{I_{current} - D_L}{\sigma_L}\right)$$
-- **HIGH RISK**: $I_{current} < D_L$ (Current inventory cannot cover expected lead time demand; stockout imminent).
-- **MEDIUM RISK**: $D_L \le I_{current} < ROP$ (Inventory has breached reorder threshold; safety stock is eroding).
-- **SAFE**: $I_{current} \ge ROP$ (Inventory remains above reorder point).
-
-#### 4. Suggested Order Quantity ($Q$)
-When inventory breaches the Reorder Point ($I_{current} \le ROP$), an replenishment order is generated:
-$$Q_{raw} = \max\left(0, ROP - I_{current} + \hat{D}_{horizon}\right)$$
-To respect real-world supplier packaging and logistics constraints, $Q_{raw}$ is adjusted to case pack multiples:
-$$Q = \max\left(MOQ, \left\lceil \frac{Q_{raw}}{\text{Pack Size}} \right\rceil \times \text{Pack Size}\right)$$
-*Parameters applied: $\text{Pack Size} = 6\text{ units}$, $\text{Minimum Order Quantity (MOQ)} = 12\text{ units}$.*
-
-### 5.5 Actionable Replenishment Recommendations Sample
-
-The table below illustrates sample actionable recommendations generated by `inventory_replenishment.py` (available in `Week 3/replenishment_recommendations.csv`):
+#### Sample Actionable Replenishment Recommendations Table
 
 | Item ID | Store | Current Stock | Lead Time Demand | Safety Stock | ROP | Stockout Risk | Suggested Order |
 |---|---|---|---|---|---|---|---|
@@ -235,26 +213,52 @@ The table below illustrates sample actionable recommendations generated by `inve
 | `FOODS_3_739` | CA_1 | 88 | 104.7 | 17.9 | 122.6 | **HIGH** (93.8%) | **456 units** |
 | `FOODS_2_276` | CA_1 | 57 | 80.1 | 25.3 | 105.4 | **HIGH** (93.4%) | **372 units** |
 
-### 5.6 Methodological Assumptions & Operational Limitations
-- **Supplier Lead Time**: Modeled assuming a deterministic 7-day supplier lead time ($L = 7$, $\sigma_L = 0$). When supplier telemetry is available, the standard deviation formula expands to $\sigma_{LT} = \sqrt{L\sigma_d^2 + \bar{d}^2\sigma_L^2}$.
-- **Unconstrained Demand Telemetry**: In retail POS systems, true lost sales during stockouts are unobserved. Demand variance ($\sigma_d$) is calculated strictly over active item records to minimize artificial deflation of safety stock buffers.
-- **Decision Support Boundaries**: These replenishment calculations serve as decision-support recommendations. Human inventory controllers must review suggested orders against warehouse pallet space, minimum order costs, and supplier batch availability.
+---
+
+### 4.4 Week 4: Dashboard, API & Final Reporting
+
+#### 1. Interactive Streamlit Dashboard (`Week 4/dashboard.py`)
+A 4-page responsive analytics interface:
+- **Page 1: Demand Overview**: Executive KPIs (Total Actual Demand, Total Forecast Demand, Aggregate WAPE, Forecast Bias), interactive actual vs forecast daily time series with store/department filtering, residual error distributions, and cumulative demand tracking.
+- **Page 2: Product / Store Forecasts**: Searchable SKU selector displaying 28-day trajectories comparing actual sales against XGBoost, Moving Average (7-Day), and Naive (Lag 7), alongside 120-day historical demand history.
+- **Page 3: Inventory Risk & Replenishment**: Dynamic slider controls for supplier lead time (3 to 21 days), target cycle service level (85% to 99%), and wholesale pack sizes (6, 12, 24). Renders current inventory vs Reorder Point safety buffers, risk tier badges, and actionable purchase order tables.
+- **Page 4: Model Performance**: Comprehensive benchmark evaluation table, WAPE bar comparisons, and residual diagnostic histograms.
+
+#### 2. Enterprise FastAPI REST Service (`Week 4/api.py`)
+A production REST service with full Pydantic request and response validation, error handling, and auto-generated Swagger documentation at `http://localhost:8000/docs`:
+- `GET /health`: Service health status, version, and catalog metadata.
+- `GET /products`: List of monitored SKU product IDs and store keys.
+- `GET /metrics`: Out-of-sample benchmark scorecard comparing ML models against baselines.
+- `POST /forecast`: Generates multi-step demand forecasts for a given SKU and horizon (1 to 28 days).
+- `POST /replenishment`: Computes Safety Stock, Reorder Point, stockout probability, and suggested replenishment quantity.
+
+#### 3. Automated Test Suite (`Week 4/test_pipeline.py`)
+Automated pytest suite validating:
+- Core KPI calculation accuracy (MAE, RMSE, WAPE, Forecast Bias).
+- Analytical Safety Stock and Reorder Point formulas.
+- Order quantity replenishment logic and pack-size rounding rules.
+- Stockout risk probability categorization under normal distributions.
+- FastAPI REST endpoint request/response contracts and status codes.
+
+#### 4. Final Executive Deliverables
+- **Final Analytical Report** ([Week 4/final_analytical_report.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.md)): Complete technical report covering business problem context, data architecture, feature engineering, modeling results, replenishment formulation, and operational limitations.
+- **Final Presentation Deck** ([Week 4/final_presentation.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.md)): Structured 8-slide executive slide deck designed for supply chain and engineering stakeholders.
 
 ---
 
-## 6. Installation & Execution Guide
+## 5. Quickstart Installation & Execution Guide
 
-### 6.1 Environment Setup
+### 5.1 Environment Setup
 ```powershell
 # Clone the repository
 git clone https://github.com/Pranav-2910/Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning.git
 cd Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning
 
-# Install dependencies
+# Install pinned dependencies
 pip install -r requirements.txt
 ```
 
-### 6.2 Reproducing All Pipelines (Weeks 1, 2 & 3)
+### 5.2 Reproducing All Pipelines (Weeks 1 to 4)
 
 **1. Run Feature Engineering Pipeline (Week 2)**:
 ```powershell
@@ -280,14 +284,68 @@ python "Week 3/inventory_replenishment.py"
 ```
 *Outputs: `Week 3/replenishment_recommendations.csv`.*
 
-### 6.3 Interactive Jupyter Notebooks
-- [Week 1/01_exploratory_data_analysis.ipynb](file:///c:/Users/prana/Desktop/P1/Week%201/01_exploratory_data_analysis.ipynb): Full exploratory data analysis, seasonality, intermittency, and promotional event lift.
-- [Week 2/02_feature_engineering_and_baselines.ipynb](file:///c:/Users/prana/Desktop/P1/Week%202/02_feature_engineering_and_baselines.ipynb): Lag generation, correlation matrices, and heuristic baseline evaluations.
-- [Week 3/03_model_training_and_replenishment.ipynb](file:///c:/Users/prana/Desktop/P1/Week%203/03_model_training_and_replenishment.ipynb): Model training, cross-validation tuning, residual diagnostic plots, and replenishment policy simulation.
+**5. Run Automated Unit Test Suite (Week 4)**:
+```powershell
+pytest "Week 4/test_pipeline.py" -v
+```
+*Verifies all 5 test suites (metrics, safety stock, replenishment, stockout risk, and API routes).*
 
 ---
 
-## 7. Dataset Provenance & Full Raw Data Access
+## 6. Launching the Interactive Applications
+
+### 6.1 Launch the Interactive Streamlit Dashboard
+```powershell
+streamlit run "Week 4/dashboard.py"
+```
+Navigate your browser to `http://localhost:8501`.
+
+### 6.2 Launch the Production FastAPI REST Service
+```powershell
+uvicorn "Week 4.api:app" --host 0.0.0.0 --port 8000 --reload
+```
+Interactive Swagger documentation is available at `http://localhost:8000/docs`.
+
+#### Sample API Queries:
+
+**1. Health Check (`GET /health`)**:
+```powershell
+curl http://localhost:8000/health
+```
+
+**2. Generate Multi-Step Demand Forecast (`POST /forecast`)**:
+```powershell
+curl -X POST "http://localhost:8000/forecast" `
+  -H "Content-Type: application/json" `
+  -d '{"item_id": "FOODS_3_090", "store_id": "CA_1", "horizon_days": 14}'
+```
+
+**3. Generate Inventory Replenishment Recommendation (`POST /replenishment`)**:
+```powershell
+curl -X POST "http://localhost:8000/replenishment" `
+  -H "Content-Type: application/json" `
+  -d '{"item_id": "FOODS_3_090", "store_id": "CA_1", "current_stock": 150, "lead_time_days": 7, "service_level": 0.95, "pack_size": 6}'
+```
+
+---
+
+## 7. Interactive Jupyter Notebooks
+
+- [Week 1/01_exploratory_data_analysis.ipynb](file:///c:/Users/prana/Desktop/P1/Week%201/01_exploratory_data_analysis.ipynb): Exploratory analysis of sales trends, seasonality cycles, intermittency, and promotional event lift.
+- [Week 2/02_feature_engineering_and_baselines.ipynb](file:///c:/Users/prana/Desktop/P1/Week%202/02_feature_engineering_and_baselines.ipynb): Non-leaking lag generation, correlation matrices, and heuristic baseline evaluations.
+- [Week 3/03_model_training_and_replenishment.ipynb](file:///c:/Users/prana/Desktop/P1/Week%203/03_model_training_and_replenishment.ipynb): Model training, cross-validation tuning, residual diagnostic plots, and inventory replenishment simulation.
+
+---
+
+## 8. Responsible-Use & Human Interpretation Guidelines
+
+1. **Decision Support, Not Autonomous Ordering**: Recommended order quantities assist planning managers. Final purchase approvals should evaluate supplier minimum order values (MOV), warehouse cubic storage limits, and non-modeled macroeconomic disruptions.
+2. **Stockouts vs Latent Demand**: Zero sales during active listing periods reflect stockout constraints rather than absent customer demand. Calculating safety stock buffers over active periods prevents downward replenishment spirals.
+3. **Supplier Lead Time Uncertainty**: The baseline system models deterministic 7-day supplier lead times ($L = 7, \sigma_L = 0$). When supplier telemetry is available, the standard deviation expands to $\sigma_{LT} = \sqrt{L\sigma_d^2 + \bar{d}^2\sigma_L^2}$.
+
+---
+
+## 9. Dataset Provenance & Full Raw Data Access
 
 The cleaned interim dataset (`Week 1/sales_interim.csv`, 14.2 MB) and the engineered features dataset (`Week 2/features_engineered.csv`, 33.8 MB) are included directly in the repository for immediate execution.
 
