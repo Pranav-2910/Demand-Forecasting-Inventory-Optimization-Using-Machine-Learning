@@ -77,9 +77,10 @@ P1/
 ├── Week 4/                                   # Week 4 Deliverables: Dashboard, API & Final Reporting
 │   ├── dashboard.py                         # Interactive multi-page Streamlit decision support application
 │   ├── api.py                               # Production FastAPI REST service with Pydantic validation
-│   ├── final_analytical_report.md           # Formal 10+ page executive technical and business report
-│   ├── final_presentation.pptx              # Native 12-slide executive presentation deck
-│   ├── final_presentation.md                # Presentation speaker script and slide-by-slide notes
+│   ├── final_analytical_report.pdf          # Formal 11-page publication-quality PDF report (ReportLab)
+│   ├── final_analytical_report.md           # Formal 11-page executive technical and business report (Markdown)
+│   ├── final_presentation.pptx              # Native 14-slide executive presentation deck (16:9 Widescreen)
+│   ├── final_presentation.md                # Presentation speaker script, numerical tables, and slide notes
 │   ├── test_pipeline.py                     # Automated unit test suite verifying metrics, inventory & API
 │   ├── README.md                            # Week 4 milestone overview and runbook
 │   └── requirements.txt                     # Pinned project dependencies
@@ -243,9 +244,10 @@ Automated pytest suite validating:
 - FastAPI REST endpoint request/response contracts and status codes.
 
 #### 4. Final Executive Deliverables
-- **Formal 10+ Page Analytical Report** ([Week 4/final_analytical_report.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.md)): Exhaustive 4,600+ word technical report covering business problem context, data architecture, feature engineering, modeling results, replenishment formulation, and operational limitations.
-- **Native Executive PowerPoint Presentation** ([Week 4/final_presentation.pptx](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.pptx)): Professional 12-slide executive deck with custom corporate visual hierarchy, KPI callouts, and structured cards.
-- **Presentation Deck Notes** ([Week 4/final_presentation.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.md)): Slide-by-slide speaker script, visual structure, and talking points.
+- **Formal 11-Page PDF Analytical Report** ([Week 4/final_analytical_report.pdf](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.pdf)): Publication-quality formal PDF report formatted with dynamic running headers/footers ("Page X of Y"), structured data tables, mathematical equations, callouts, and exhaustive technical explanations across 12 comprehensive sections.
+- **Formal Technical Report (Markdown)** ([Week 4/final_analytical_report.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.md)): Complete 4,600+ word markdown version covering business problem context, data architecture, feature engineering, modeling results, replenishment formulation, and operational limitations.
+- **Native Executive PowerPoint Presentation** ([Week 4/final_presentation.pptx](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.pptx)): Professional 14-slide executive widescreen deck (16:9) featuring concise problem statement and methodology alongside detailed numerical scorecards, empirical category insights, KPI callout cards, and corporate styling.
+- **Presentation Deck Notes & Speaker Script** ([Week 4/final_presentation.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.md)): Slide-by-slide speaker scripts, numerical observations, and executive talking points.
 
 ---
 
