@@ -37,7 +37,6 @@ Week 4 packages the predictive demand forecasting models and statistical invento
    - **Formal 11-Page PDF Analytical Report (`final_analytical_report.pdf`)**: Publication-quality formal PDF report formatted with dynamic running headers/footers ("Page X of Y"), structured data tables, mathematical equations, callouts, and exhaustive technical explanations across 12 comprehensive sections.
    - **Formal Technical Report (`final_analytical_report.md`)**: Comprehensive markdown technical and business methodology report (4,600+ words).
    - **Native Executive PowerPoint Presentation (`final_presentation.pptx`)**: Professional 14-slide executive presentation deck (16:9 widescreen) with concise methodology and detailed numerical observations, category breakdowns, and KPI scorecards.
-   - **Presentation Script & Notes (`final_presentation.md`)**: Slide-by-slide speaker script, visual structure, and talking points.
    - **Requirements Specification (`requirements.txt`)**: Pinned production dependencies.
 
 ---
