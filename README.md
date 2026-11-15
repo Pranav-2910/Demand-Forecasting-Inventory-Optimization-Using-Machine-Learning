@@ -12,15 +12,15 @@
 
 ## 1. Executive Summary & Problem Context
 
-In multi-echelon retail supply chains, operations teams must balance on-shelf product availability against the substantial working capital and physical carrying costs of excess inventory. Inaccurate demand estimates trigger stockouts, lost sales, emergency supplier replenishment fees, and brand defection, or conversely cause severe overstocking, capital lockup, and margin-eroding markdowns.
+In multi-echelon retail supply chains, operations teams must continuously balance on-shelf product availability against the substantial financial carrying costs of excess inventory. Inaccurate demand estimates trigger stockouts, forfeited sales revenue, emergency supplier replenishment fees, and customer defection. Conversely, over-forecasting demand leads to tied-up working capital, warehouse congestion, spoilage of perishable goods, and margin-eroding promotional markdowns.
 
-This repository implements a production-grade, end-to-end **Predictive Demand Forecasting and Inventory Decision-Support System** developed across four structured lifecycle milestones:
+This repository implements an enterprise-grade, end-to-end **Predictive Demand Forecasting and Inventory Decision-Support System** developed across four structured lifecycle milestones:
 1. **Audits Multi-Source Retail Telemetry** (1,913 days of point-of-sale sales, weekly shelf prices, promotional calendars, and SNAP distribution schedules across Walmart retail stores).
-2. **Differentiates Unconstrained Demand from Observed Sales** during stockouts to prevent persistent downward inventory spirals.
-3. **Engineers Non-Leaking Predictive Features** (lags strictly $\ge 7$ days, rolling window statistics anchored prior to forecast horizons, calendar attributes, and promotional markdown indicators).
+2. **Differentiates Unconstrained Demand from Observed Sales** during stockouts to prevent persistent downward replenishment spirals.
+3. **Engineers Non-Leaking Predictive Features** (lags strictly $\ge 7$ days, rolling window statistics anchored prior to forecast horizons, calendar harmonics, and promotional markdown indicators).
 4. **Enforces Strict Chronological Splitting** (`Train` $\rightarrow$ `Validation` $\rightarrow$ `Test`) to guarantee zero forward-looking data leakage.
 5. **Benchmarks Against Heuristic Baselines** (Naive Lag 7, Seasonal Naive Lag 28, 7-Day & 28-Day Moving Averages) evaluated across MAE, RMSE, WAPE, and Forecast Bias.
-6. **Trains, Tunes & Evaluates Machine Learning Models** (Random Forest, LightGBM, and XGBoost), with the winning **XGBoost regressor** achieving **38.03% WAPE** and **5.612 unit MAE** on a 28-day out-of-sample test horizon.
+6. **Trains, Tunes & Evaluates Machine Learning Models** (Random Forest, LightGBM, and XGBoost), with the winning **XGBoost regressor** achieving **38.03% WAPE** and **5.612 unit MAE** on an out-of-sample 28-day test horizon.
 7. **Translates Demand Forecasts into Inventory Replenishment Decisions**, calculating dynamic **Safety Stock ($SS$)**, **Reorder Points ($ROP$)**, **Stockout Probability ($P(\text{Stockout})$)**, and case-pack rounded order quantities under a documented 95% cycle service level.
 8. **Operationalizes Decision Support** through an interactive 4-page **Streamlit Dashboard** and a high-throughput **FastAPI REST Service** backed by automated unit tests.
 
@@ -77,14 +77,16 @@ P1/
 ├── Week 4/                                   # Week 4 Deliverables: Dashboard, API & Final Reporting
 │   ├── dashboard.py                         # Interactive multi-page Streamlit decision support application
 │   ├── api.py                               # Production FastAPI REST service with Pydantic validation
-│   ├── final_analytical_report.md           # Formal executive business and technical methodology report
-│   ├── final_presentation.md                # 8-slide executive presentation deck for stakeholders
+│   ├── final_analytical_report.md           # Formal 10+ page executive technical and business report
+│   ├── final_presentation.pptx              # Native 12-slide executive presentation deck
+│   ├── final_presentation.md                # Presentation speaker script and slide-by-slide notes
 │   ├── test_pipeline.py                     # Automated unit test suite verifying metrics, inventory & API
 │   ├── README.md                            # Week 4 milestone overview and runbook
 │   └── requirements.txt                     # Pinned project dependencies
 │
+├── streamlit_app.py                         # 1-Click Streamlit Community Cloud root entrypoint
 ├── requirements.txt                         # Root dependency specifications
-├── .gitignore                               # Standardized Git ignore rules
+├── .gitignore                               # Standardized Git ignore rules (ignoring files > 100 MB)
 └── README.md                                # Root comprehensive documentation & execution guide
 ```
 
@@ -117,7 +119,7 @@ P1/
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                         WEEK 4: DECISION SUPPORT APPLICATIONS                          │
 │  Interactive Streamlit Dashboard ◄──► Enterprise FastAPI REST Service ◄──► Unit Tests  │
-│  Executive Analytical Report     ◄──► 8-Slide Final Presentation Deck ◄──► CI Test Run │
+│  Formal 10-Page Analytical Report ◄──► 12-Slide Native PowerPoint Deck ◄──► Cloud App   │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -125,7 +127,7 @@ P1/
 
 ## 4. Detailed Milestone Breakdown
 
-### 4.1 Week 1: Data Collection, Quality Checks & Exploratory Analysis
+### 4.1 Week 1: Data Ingestion, Quality Audit & Exploratory Analysis
 - **Longitudinal Span**: Verified **1,913 contiguous calendar days** (`2011-01-29` to `2016-04-24`) across retail merchandise departments (`HOBBIES`, `FOODS`, `HOUSEHOLD`).
 - **Data Quality Audit**: Confirmed zero duplicate primary keys `(store_id, item_id, date)`, zero negative sales, and zero negative sell prices.
 - **Stockout vs Unconstrained Demand Protocol**:
@@ -142,11 +144,11 @@ P1/
 
 ### 4.2 Week 2: Feature Engineering & Baseline Forecasts
 - **Leakage Prevention Principle**: Every feature is strictly calculated using historical information available prior to the forecast horizon ($t \ge 7$).
-- **Engineered Feature Registry**:
-  - **Lags**: `sales_lag_7`, `sales_lag_14`, `sales_lag_21`, `sales_lag_28`, `sales_lag_35`, `sales_lag_42`.
-  - **Rolling Statistics**: Rolling mean, standard deviation, and maximum over 7, 14, and 28-day windows, anchored strictly at `sales_lag_7` to eliminate contemporaneous leakage.
-  - **Calendar Metadata**: Day of week, day of month, month, year, weekend indicator, holiday event indicator, event category codes, SNAP benefit distribution flags.
-  - **Pricing & Elasticity**: Selling price, price deviation from SKU historical average, promotional markdown ratios.
+- **Engineered Feature Registry (27 Attributes)**:
+  - **Lags (6)**: `sales_lag_7`, `sales_lag_14`, `sales_lag_21`, `sales_lag_28`, `sales_lag_35`, `sales_lag_42`.
+  - **Rolling Statistics (9)**: Rolling mean, standard deviation, and maximum over 7, 14, and 28-day windows, anchored strictly at `sales_lag_7` to eliminate contemporaneous leakage.
+  - **Calendar Metadata (8)**: Day of week, day of month, month, year, weekend indicator, holiday event indicator, event category codes, SNAP benefit distribution flags.
+  - **Pricing & Elasticity (4)**: Selling price, price deviation from SKU historical average, promotional markdown ratios, and discount flags.
 - **Strict Chronological Partitions**:
   - **Training Partition**: `2011-01-29` to `2016-02-28` (~5 years, 90,850 rows).
   - **Validation Partition**: `2016-02-29` to `2016-03-27` (28 days, 1,400 rows).
@@ -200,29 +202,29 @@ P1/
 
 #### Sample Actionable Replenishment Recommendations Table
 
-| Item ID | Store | Current Stock | Lead Time Demand | Safety Stock | ROP | Stockout Risk | Suggested Order |
-|---|---|---|---|---|---|---|---|
-| `FOODS_3_744` | CA_1 | 44 | 83.4 | 15.6 | 99.0 | **HIGH** (100.0%) | **390 units** |
-| `FOODS_3_090` | CA_1 | 182 | 351.0 | 94.7 | 445.7 | **HIGH** (99.8%) | **1668 units** |
-| `FOODS_3_362` | CA_1 | 62 | 121.0 | 35.5 | 156.5 | **HIGH** (99.7%) | **582 units** |
-| `FOODS_3_694` | CA_1 | 46 | 80.1 | 20.5 | 100.7 | **HIGH** (99.7%) | **378 units** |
-| `FOODS_2_019` | CA_1 | 61 | 104.2 | 29.9 | 134.1 | **HIGH** (99.1%) | **492 units** |
-| `FOODS_1_085` | CA_1 | 48 | 76.7 | 22.4 | 99.1 | **HIGH** (98.2%) | **360 units** |
-| `FOODS_3_702` | CA_1 | 43 | 65.8 | 19.9 | 85.7 | **HIGH** (97.0%) | **306 units** |
-| `FOODS_3_099` | CA_1 | 75 | 103.9 | 27.9 | 131.8 | **HIGH** (95.6%) | **474 units** |
-| `FOODS_3_739` | CA_1 | 88 | 104.7 | 17.9 | 122.6 | **HIGH** (93.8%) | **456 units** |
-| `FOODS_2_276` | CA_1 | 57 | 80.1 | 25.3 | 105.4 | **HIGH** (93.4%) | **372 units** |
+| Item ID | Store | Current Stock | Lead Time Demand | Safety Stock | ROP | Stockout Risk | Suggested Order | Est. Capital ($) |
+|---|---|---|---|---|---|---|---|---|
+| `FOODS_3_744` | CA_1 | 44 | 83.4 | 15.6 | 99.0 | **HIGH** (100.0%) | **390 units** | \$1,365.00 |
+| `FOODS_3_090` | CA_1 | 182 | 351.0 | 94.7 | 445.7 | **HIGH** (99.8%) | **1668 units** | \$2,502.00 |
+| `FOODS_3_362` | CA_1 | 62 | 121.0 | 35.5 | 156.5 | **HIGH** (99.7%) | **582 units** | \$1,746.00 |
+| `FOODS_3_694` | CA_1 | 46 | 80.1 | 20.5 | 100.7 | **HIGH** (99.7%) | **378 units** | \$1,134.00 |
+| `FOODS_2_019` | CA_1 | 61 | 104.2 | 29.9 | 134.1 | **HIGH** (99.1%) | **492 units** | \$1,476.00 |
+| `FOODS_1_085` | CA_1 | 48 | 76.7 | 22.4 | 99.1 | **HIGH** (98.2%) | **360 units** | \$1,080.00 |
+| `FOODS_3_702` | CA_1 | 43 | 65.8 | 19.9 | 85.7 | **HIGH** (97.0%) | **306 units** | \$918.00 |
+| `FOODS_3_099` | CA_1 | 75 | 103.9 | 27.9 | 131.8 | **HIGH** (95.6%) | **474 units** | \$1,422.00 |
+| `FOODS_3_739` | CA_1 | 88 | 104.7 | 17.9 | 122.6 | **HIGH** (93.8%) | **456 units** | \$1,368.00 |
+| `FOODS_2_276` | CA_1 | 57 | 80.1 | 25.3 | 105.4 | **HIGH** (93.4%) | **372 units** | \$1,116.00 |
 
 ---
 
-### 4.4 Week 4: Dashboard, API & Final Reporting
+### 4.4 Week 4: Dashboard, API & Executive Reporting
 
-#### 1. Interactive Streamlit Dashboard (`Week 4/dashboard.py`)
-A 4-page responsive analytics interface:
+#### 1. Interactive Streamlit Dashboard (`Week 4/dashboard.py` and `streamlit_app.py`)
+A 4-page enterprise decision-support interface:
 - **Page 1: Demand Overview**: Executive KPIs (Total Actual Demand, Total Forecast Demand, Aggregate WAPE, Forecast Bias), interactive actual vs forecast daily time series with store/department filtering, residual error distributions, and cumulative demand tracking.
 - **Page 2: Product / Store Forecasts**: Searchable SKU selector displaying 28-day trajectories comparing actual sales against XGBoost, Moving Average (7-Day), and Naive (Lag 7), alongside 120-day historical demand history.
-- **Page 3: Inventory Risk & Replenishment**: Dynamic slider controls for supplier lead time (3 to 21 days), target cycle service level (85% to 99%), and wholesale pack sizes (6, 12, 24). Renders current inventory vs Reorder Point safety buffers, risk tier badges, and actionable purchase order tables.
-- **Page 4: Model Performance**: Comprehensive benchmark evaluation table, WAPE bar comparisons, and residual diagnostic histograms.
+- **Page 3: Inventory Risk & Replenishment**: Dynamic slider controls for supplier lead time (3 to 21 days), target cycle service level (80% to 99.9%), wholesale pack sizes (6, 12, 24, 48), and MOQ. Renders current inventory vs Reorder Point safety buffers, risk tier badges, and an **actionable purchase order table with 1-click CSV Export (`st.download_button`)**.
+- **Page 4: Model Performance**: Comprehensive benchmark evaluation table, WAPE & RMSE bar comparisons, and XGBoost feature importance rankings.
 
 #### 2. Enterprise FastAPI REST Service (`Week 4/api.py`)
 A production REST service with full Pydantic request and response validation, error handling, and auto-generated Swagger documentation at `http://localhost:8000/docs`:
@@ -241,14 +243,46 @@ Automated pytest suite validating:
 - FastAPI REST endpoint request/response contracts and status codes.
 
 #### 4. Final Executive Deliverables
-- **Final Analytical Report** ([Week 4/final_analytical_report.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.md)): Complete technical report covering business problem context, data architecture, feature engineering, modeling results, replenishment formulation, and operational limitations.
-- **Final Presentation Deck** ([Week 4/final_presentation.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.md)): Structured 8-slide executive slide deck designed for supply chain and engineering stakeholders.
+- **Formal 10+ Page Analytical Report** ([Week 4/final_analytical_report.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_analytical_report.md)): Exhaustive 4,600+ word technical report covering business problem context, data architecture, feature engineering, modeling results, replenishment formulation, and operational limitations.
+- **Native Executive PowerPoint Presentation** ([Week 4/final_presentation.pptx](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.pptx)): Professional 12-slide executive deck with custom corporate visual hierarchy, KPI callouts, and structured cards.
+- **Presentation Deck Notes** ([Week 4/final_presentation.md](file:///c:/Users/prana/Desktop/P1/Week%204/final_presentation.md)): Slide-by-slide speaker script, visual structure, and talking points.
 
 ---
 
-## 5. Quickstart Installation & Execution Guide
+## 5. How to Deploy the Streamlit Dashboard
 
-### 5.1 Environment Setup
+### Option A: Free 1-Click Deployment to Streamlit Community Cloud (Recommended)
+You can deploy this dashboard to the cloud for free with a public shareable URL:
+
+1. **Push Repository to GitHub**:
+   Ensure all changes are pushed to your GitHub repository:
+   `https://github.com/Pranav-2910/Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning`
+2. **Sign in to Streamlit Community Cloud**:
+   Go to [share.streamlit.io](https://share.streamlit.io/) and click **"Continue with GitHub"**.
+3. **Deploy New Application**:
+   - Click the blue **"New app"** button.
+   - **Repository**: `Pranav-2910/Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning`
+   - **Branch**: `main`
+   - **Main file path**: `streamlit_app.py` (or `Week 4/dashboard.py`)
+4. **Click "Deploy!"**:
+   Streamlit Cloud automatically installs packages from `requirements.txt` and launches your live interactive dashboard in approximately 2 minutes!
+
+### Option B: Local Execution
+Run the dashboard locally in your terminal:
+```powershell
+# Using the root entrypoint:
+streamlit run streamlit_app.py
+
+# Or running directly from Week 4:
+streamlit run "Week 4/dashboard.py"
+```
+Navigate your browser to `http://localhost:8501`.
+
+---
+
+## 6. Quickstart Execution Guide for All Pipelines
+
+### 6.1 Environment Setup
 ```powershell
 # Clone the repository
 git clone https://github.com/Pranav-2910/Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning.git
@@ -258,7 +292,7 @@ cd Demand-Forecasting-Inventory-Optimization-Using-Machine-Learning
 pip install -r requirements.txt
 ```
 
-### 5.2 Reproducing All Pipelines (Weeks 1 to 4)
+### 6.2 Reproducing All Pipelines (Weeks 1 to 4)
 
 **1. Run Feature Engineering Pipeline (Week 2)**:
 ```powershell
@@ -292,21 +326,14 @@ pytest "Week 4/test_pipeline.py" -v
 
 ---
 
-## 6. Launching the Interactive Applications
+## 7. Launching the Production FastAPI REST Service
 
-### 6.1 Launch the Interactive Streamlit Dashboard
-```powershell
-streamlit run "Week 4/dashboard.py"
-```
-Navigate your browser to `http://localhost:8501`.
-
-### 6.2 Launch the Production FastAPI REST Service
 ```powershell
 uvicorn "Week 4.api:app" --host 0.0.0.0 --port 8000 --reload
 ```
 Interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
-#### Sample API Queries:
+### Sample API Queries:
 
 **1. Health Check (`GET /health`)**:
 ```powershell
@@ -329,7 +356,7 @@ curl -X POST "http://localhost:8000/replenishment" `
 
 ---
 
-## 7. Interactive Jupyter Notebooks
+## 8. Interactive Jupyter Notebooks
 
 - [Week 1/01_exploratory_data_analysis.ipynb](file:///c:/Users/prana/Desktop/P1/Week%201/01_exploratory_data_analysis.ipynb): Exploratory analysis of sales trends, seasonality cycles, intermittency, and promotional event lift.
 - [Week 2/02_feature_engineering_and_baselines.ipynb](file:///c:/Users/prana/Desktop/P1/Week%202/02_feature_engineering_and_baselines.ipynb): Non-leaking lag generation, correlation matrices, and heuristic baseline evaluations.
@@ -337,15 +364,15 @@ curl -X POST "http://localhost:8000/replenishment" `
 
 ---
 
-## 8. Responsible-Use & Human Interpretation Guidelines
+## 9. Responsible-Use & Human Interpretation Guidelines
 
 1. **Decision Support, Not Autonomous Ordering**: Recommended order quantities assist planning managers. Final purchase approvals should evaluate supplier minimum order values (MOV), warehouse cubic storage limits, and non-modeled macroeconomic disruptions.
 2. **Stockouts vs Latent Demand**: Zero sales during active listing periods reflect stockout constraints rather than absent customer demand. Calculating safety stock buffers over active periods prevents downward replenishment spirals.
-3. **Supplier Lead Time Uncertainty**: The baseline system models deterministic 7-day supplier lead times ($L = 7, \sigma_L = 0$). When supplier telemetry is available, the standard deviation expands to $\sigma_{LT} = \sqrt{L\sigma_d^2 + \bar{d}^2\sigma_L^2}$.
+3. **Supplier Lead Time Uncertainty**: The baseline system models deterministic 7-day supplier lead times ($L = 7, \sigma_L = 0$). When supplier delivery variance is documented, the standard deviation expands to $\sigma_{LT} = \sqrt{L\sigma_d^2 + \bar{d}^2\sigma_L^2}$.
 
 ---
 
-## 9. Dataset Provenance & Full Raw Data Access
+## 10. Dataset Provenance & Full Raw Data Access
 
 The cleaned interim dataset (`Week 1/sales_interim.csv`, 14.2 MB) and the engineered features dataset (`Week 2/features_engineered.csv`, 33.8 MB) are included directly in the repository for immediate execution.
 
